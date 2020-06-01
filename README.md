@@ -58,6 +58,14 @@ C-like syntax for control-flow constructs and function declarations.
 `whereami` will not complain about syntax it does not understand but
 the information it provides will be suboptimal in such cases.
 
+## Building
+
+Execute `build.bat` in an environment that is set up correctly for
+Microsoft Visual C++ in order to build the program.
+
+It should be straight-forward to adapt `build.bat` to other toolchains
+if you so desire.
+
 # Development
 
 The original version of the program was written in a live stream on my
