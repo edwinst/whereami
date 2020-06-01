@@ -37,11 +37,14 @@ For more information, please refer to <https://unlicense.org>
 #include <cctype>
 #include <algorithm> // for std::min
 
+#ifdef WIN32
 #include "windows.h"
 #undef min
+#endif
 
 
 namespace {
+#ifdef WIN32
     void print_windows_system_error(FILE *file)
     {
         DWORD error = ::GetLastError();
@@ -69,15 +72,6 @@ namespace {
             fputc('\n', file);
     }
 
-    void exit_error(char *fmt, ...)
-    {
-        va_list vl;
-        va_start(vl, fmt);
-        fprintf(stderr, "error: ");
-        vfprintf(stderr, fmt, vl);
-        exit(EXIT_FAILURE);
-    }
-
     void exit_windows_system_error(char *fmt, ...)
     {
         va_list vl;
@@ -86,6 +80,28 @@ namespace {
         vfprintf(stderr, fmt, vl);
         va_end(vl);
         print_windows_system_error(stderr);
+        exit(EXIT_FAILURE);
+    }
+#else
+    void exit_clib_error(char *fmt, ...)
+    {
+        va_list vl;
+        fputs("error: ", stderr);
+        va_start(vl, fmt);
+        vfprintf(stderr, fmt, vl);
+        va_end(vl);
+        #pragma warning (suppress : 4996) // no need for strerror_s
+        fprintf(stderr, ": (%d) %s\n", errno, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+#endif
+
+    void exit_error(char *fmt, ...)
+    {
+        va_list vl;
+        va_start(vl, fmt);
+        fprintf(stderr, "error: ");
+        vfprintf(stderr, fmt, vl);
         exit(EXIT_FAILURE);
     }
 
@@ -218,6 +234,7 @@ int main(int argc, char **argv)
         exit_error("expected a line number as the second command-line argument but got: %s",
                    argv[2]);
 
+#ifdef WIN32
     HANDLE file = ::CreateFile(
             filename, // lpFileName
             GENERIC_READ, // dwDesiredAccess
@@ -235,6 +252,18 @@ int main(int argc, char **argv)
     if (!result)
         exit_windows_system_error("could not get file size");
     uint64_t file_size = file_size_large_integer.QuadPart;
+#else
+    #pragma warning (suppress : 4996) // gimme fopen
+    FILE *file = fopen(filename, "rb");
+    if (!file)
+        exit_clib_error("could not open file '%s'", filename);
+    int result = fseek(file, 0, SEEK_END);
+    if (result != 0)
+        exit_clib_error("could not seek the end of file '%s'", filename);
+    int64_t file_size = (int64_t)ftell(file);
+    if (file_size < 0)
+        exit_clib_error("could not get the size of file '%s'", filename);
+#endif
 
     if (file_size > UINT32_MAX)
         exit_error("File size %" PRIu64 " > %u bytes is not supported.\n",
@@ -244,10 +273,17 @@ int main(int argc, char **argv)
     if (!text)
         exit_error("Out-of-memory allocating buffer for file text (file_size = %" PRIu64 ")\n", file_size);
 
+#ifdef WIN32
     DWORD n_bytes_read;
     result = ::ReadFile(file, text, (DWORD)file_size, &n_bytes_read, NULL);
     if (!result)
         exit_windows_system_error("Could not read file '%s'", filename);
+#else
+    result = fseek(file, 0, SEEK_SET);
+    if (result != 0)
+        exit_clib_error("could not seek the beginning of file '%s'", filename);
+    uint32_t n_bytes_read = (uint32_t)fread(text, 1, file_size, file);
+#endif
 
     if (n_bytes_read != file_size)
         exit_error("Reading file '%s' gave %u bytes instead of the expected %" PRIu64 ".\n",
@@ -255,9 +291,15 @@ int main(int argc, char **argv)
 
     text[n_bytes_read] = 0;
 
+#if WIN32
     result = ::CloseHandle(file);
     if (!result)
         exit_windows_system_error("Could not close file handle");
+#else
+    result = fclose(file);
+    if (result == EOF)
+        exit_clib_error("could not close file '%s'", filename);
+#endif
     file = NULL;
 
     uint32_t n_lines = 0;
