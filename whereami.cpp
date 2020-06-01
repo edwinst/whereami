@@ -35,11 +35,9 @@ For more information, please refer to <https://unlicense.org>
 #include <cinttypes>
 #include <cassert>
 #include <cctype>
-#include <algorithm> // for std::min
 
 #ifdef WIN32
 #include "windows.h"
-#undef min
 #endif
 
 
@@ -52,7 +50,7 @@ namespace {
         fprintf(file, ": (0x%08X) ", error);
 
         char buffer[1024] = { 0 };
-        DWORD bufsize = (DWORD)std::min(sizeof(buffer), (size_t)65535);
+        DWORD bufsize = (DWORD)min(sizeof(buffer), (size_t)65535);
         DWORD result = ::FormatMessage(
             FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, // dwFlags
             NULL, // lpSource
