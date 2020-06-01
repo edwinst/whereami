@@ -42,7 +42,7 @@ usefulness of the reported result. In particular it does the following:
   shortening identifiers to the first few characters, etc.
   (see `maybe_skip_substr`, `print_context` in `whereami.cpp`)
   Different heuristics are applied to lines that look like function
-  headers
+  headers versus lines that look like control flow statements.
 
 * Lines starting with '#' like C preprocessor directives are currently
   ignored for purposes of context reporting.
@@ -53,7 +53,7 @@ usefulness of the reported result. In particular it does the following:
   anyway.)
 
 The first step (indentation analysis) is mostly language-independent.
-The second, heuristic, step, however, makes some assumptions about
+The second (heuristic) step, however, makes some assumptions about
 C-like syntax for control-flow constructs and function declarations.
 `whereami` will not complain about syntax it does not understand but
 the information it provides will be suboptimal in such cases.
@@ -71,18 +71,19 @@ on [my YouTube channel](https://www.youtube.com/channel/UC2FDMyhLAoQM2HR8zY4m7hw
 that modify indentation or move code, the printed information may be off.
 
 * Tab stops are currently hard-coded to be at multiples of 8 characters. If you use
-a different setting in your code, you will need to adapt the code or add an
-option lest `whereami` misunderstand your indentation.
+a different setting in your code, you will need to adapt `whereami` or add an
+option lest the program misunderstand your indentation.
 
 # Future directions
 
 * `whereami` is very fast already but it could be made even more responsive by
   implementing a server mode in which the `whereami` process keeps running and
   the editor communicates with it via pipes or sockets (e.g. using vim's "channels"
-  feature). In such a setup it would probably be responsive enough to
+  feature). In such a setup, it would probably be responsive enough to
   invoke it after every cursor movement in the editor. The biggest challenge
   is how to handle modifications of the source code after the initial file or
   buffer contents have been loaded into `whereami`.
+
   Note: I did not find a great need to implement such advanced features as
   I usually only need to re-orient myself in the source code after using
   search functions to jump somewhere else and `whereami` is easily fast enough
