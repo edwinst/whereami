@@ -12,20 +12,20 @@ The intended use is to call `whereami` from your editor in order to
 help you orient yourself in large code files, especially after jumping
 to a location via search.
 
-# License
+## License
 
 I put the source code of `whereami` in the public domain to allow unencumbered reuse and
 adaptation. See the file `LICENSE` for the (un)license terms that apply.
 
-# XXX TODO
+## XXX TODO
 
 * use
 * make portable?
 * example near the introduction
 
-# Use
+## Use
 
-# Principle of operation
+## Principle of operation
 
 `whereami` saves time and complexity by not trying to understand the
 syntax of your code. Instead, it simply looks at the indentation in order
@@ -66,14 +66,14 @@ Microsoft Visual C++ in order to build the program.
 It should be straight-forward to adapt `build.bat` to other toolchains
 if you so desire.
 
-# Development
+## Development
 
 The original version of the program was written in a live stream on my
 [twitch channel](https://www.twitch.tv/edwinst). You can watch the
 [archived recording](https://youtu.be/vWOtwyDFxi8)
 on [my YouTube channel](https://www.youtube.com/channel/UC2FDMyhLAoQM2HR8zY4m7hw).
 
-# Limitations
+## Limitations
 
 * `whereami` reads your code from a file. Therefore, if you have unsaved changes
 that modify indentation or move code, the printed information may be off.
@@ -82,7 +82,7 @@ that modify indentation or move code, the printed information may be off.
 a different setting in your code, you will need to adapt `whereami` or add an
 option lest the program misunderstand your indentation.
 
-# Future directions
+## Future directions
 
 * `whereami` is very fast already but it could be made even more responsive by
   implementing a server mode in which the `whereami` process keeps running and
