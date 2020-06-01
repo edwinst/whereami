@@ -251,7 +251,7 @@ int main(int argc, char **argv)
 
     if (n_bytes_read != file_size)
         exit_error("Reading file '%s' gave %u bytes instead of the expected %" PRIu64 ".\n",
-                   n_bytes_read, file_size);
+                   filename, n_bytes_read, file_size);
 
     text[n_bytes_read] = 0;
 
