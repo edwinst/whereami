@@ -468,6 +468,8 @@ int main(int argc, char **argv)
             printf("...");
         if (!query_line)
             printf("\n");
+        free(context_array);
+        context_array = nullptr;
     }
 
     free(line_info_array);
