@@ -101,7 +101,7 @@ Microsoft Visual C++ in order to build the program.
 It should be straight-forward to adapt `build.bat` to other toolchains
 if you so desire.
 
-## Building on Linux / other OS with gcc
+## Building on Linux / other OS with standard C++
 
 `whereami` should build on any system supporting standard C++ and 64-bit integer types.
 The following command can be used on Linux:
