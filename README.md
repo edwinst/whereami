@@ -58,13 +58,20 @@ C-like syntax for control-flow constructs and function declarations.
 `whereami` will not complain about syntax it does not understand but
 the information it provides will be suboptimal in such cases.
 
-## Building
+## Building on Windows
 
 Execute `build.bat` in an environment that is set up correctly for
 Microsoft Visual C++ in order to build the program.
 
 It should be straight-forward to adapt `build.bat` to other toolchains
 if you so desire.
+
+## Building on Linux / other OS with gcc
+
+`whereami` should build on any system supporting standard C++ and 64-bit integer types.
+The following command can be used on Linux:
+
+    g++ -std=c++11 -o whereami whereami.cpp
 
 ## Development
 
@@ -76,11 +83,15 @@ on [my YouTube channel](https://www.youtube.com/channel/UC2FDMyhLAoQM2HR8zY4m7hw
 ## Limitations
 
 * `whereami` reads your code from a file. Therefore, if you have unsaved changes
-that modify indentation or move code, the printed information may be off.
+  that modify indentation or move code, the printed information may be off.
 
 * Tab stops are currently hard-coded to be at multiples of 8 characters. If you use
-a different setting in your code, you will need to adapt `whereami` or add an
-option lest the program misunderstand your indentation.
+  a different setting in your code, you will need to adapt `whereami` or add an
+  option lest the program misunderstand your indentation.
+
+* Files larger than `UINT32_MAX` bytes are currently not supported. It would not be
+  difficult to change that but my source files still have enough room to grow
+  before hitting that limit.
 
 ## Future directions
 
