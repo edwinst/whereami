@@ -12,6 +12,13 @@ The intended use is to call `whereami` from your editor in order to
 help you orient yourself in large code files, especially after jumping
 to a location via search.
 
+For example, when invoked for line 200 of its own source code, `whereami` prints the line
+
+    ..45: {..148: void print_context(..164: while(*ptr){
+
+indicating that line 200 is within an anonymous namespace starting at line 45, in
+fuction `print_context` starting at line 148, in a while loop starting at line 164.
+
 `whereami` only relies on standard C++ and the availability of 64-bit integer types.
 (The latter requirement could easily be removed.) It has been verified to build
 on 64-bit Windows and Linux.
@@ -21,13 +28,37 @@ on 64-bit Windows and Linux.
 I put the source code of `whereami` in the public domain to allow unencumbered reuse and
 adaptation. See the file `LICENSE` for the (un)license terms that apply.
 
-## XXX TODO
-
-* use
-* make portable?
-* example near the introduction
-
 ## Use
+
+The program is invoked as follows:
+
+    whereami SOURCE_FILE LINE_NUMBER
+
+It will read the file `SOURCE_FILE` and print a one-line description for the position of
+line `LINE_NUMBER` (1-based) in the file's indentation hierarchy.
+
+You can specify `0` for `LINE_NUMBER` to print descriptions for all lines in the file.
+This is mostly meant to aid development of `whereami`.
+
+You will probably want to set up a hotkey in your editor to use it. For `vim`, you can
+add the following lines to your `.vimrc` file:
+
+    "========== whereami setup
+    let s:whereami_bin="C:\\REPLACE_PATH_HERE\\whereami.exe"
+
+    function! s:whereami()
+        let s:whereami_command = s:whereami_bin." ".expand("%")." ".line(".")
+        silent let s:info = system(s:whereami_command)
+        let s:width = max([20, winwidth(0) - 30])
+        let s:info = s:info[0:s:width]
+        echon s:info
+    endfunction
+
+    map <F11> :call <SID>whereami()<CR>
+    noremap * *:call <SID>whereami()<CR>
+
+Note: I use the last line to tell me where I am after using the `*` command to search for
+the word under the cursor. 
 
 ## Principle of operation
 
