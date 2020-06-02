@@ -437,10 +437,8 @@ int main(int argc, char **argv)
             exit_error("Out-of-memory allocating context array.\n");
 
         Context *context_ptr = context_array + n_contexts;
-        uint32_t prev_indentation = line_info->indentation;
         for (LineInfo *outer = line_info; outer->outer_index >= 0; ) {
             outer = line_info_array + outer->outer_index;
-            // XXX cannot really assert this as #-lines are outside the conistent indentation scheme: assert(outer->indentation < prev_indentation);
             uint32_t indent = outer->indentation;
             while (outer > line_info_array && line_is_boring(outer, text)) {
                 outer--;
@@ -451,7 +449,6 @@ int main(int argc, char **argv)
             context_ptr--;
             context_ptr->index = (uint32_t)(outer - line_info_array);
             context_ptr->text = text + outer->start_offset;
-            prev_indentation = outer->indentation;
         }
         assert(context_ptr >= context_array);
         uint32_t start_i = (uint32_t)(context_ptr - context_array);
