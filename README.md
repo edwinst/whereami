@@ -17,7 +17,7 @@ For example, when invoked for line 200 of its own source code, `whereami` prints
     ..45: {..148: void print_context(..164: while(*ptr){
 
 indicating that line 200 is within an anonymous namespace starting at line 45, in
-fuction `print_context` starting at line 148, in a while loop starting at line 164.
+function `print_context` starting at line 148, in a while loop starting at line 164.
 
 `whereami` only relies on standard C++ and the availability of 64-bit integer types.
 (The latter requirement could easily be removed.) It has been verified to build
@@ -129,6 +129,10 @@ on [my YouTube channel](https://www.youtube.com/channel/UC2FDMyhLAoQM2HR8zY4m7hw
   before hitting that limit.
 
 ## Future directions
+
+* One could add the possibility to read code from `stdin` instead of from a file.
+  Then the editor could always pipe in the current buffer contents, making the
+  location information accurate even if one has unsaved changes in the editing buffer.
 
 * `whereami` is very fast already but it could be made even more responsive by
   implementing a server mode in which the `whereami` process keeps running and
