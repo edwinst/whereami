@@ -12,6 +12,10 @@ The intended use is to call `whereami` from your editor in order to
 help you orient yourself in large code files, especially after jumping
 to a location via search.
 
+`whereami` only relies on standard C++ and the availability of 64-bit integer types.
+(The latter requirement could easily be removed.) It has been verified to build
+on 64-bit Windows and Linux.
+
 ## License
 
 I put the source code of `whereami` in the public domain to allow unencumbered reuse and
