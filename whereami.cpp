@@ -35,6 +35,7 @@ For more information, please refer to <https://unlicense.org>
 #include <cinttypes>
 #include <cassert>
 #include <cctype>
+#include <cerrno>
 
 #ifdef WIN32
 #include "windows.h"
@@ -70,7 +71,7 @@ namespace {
             fputc('\n', file);
     }
 
-    void exit_windows_system_error(char *fmt, ...)
+    void exit_windows_system_error(const char *fmt, ...)
     {
         va_list vl;
         fputs("error: ", stderr);
@@ -81,7 +82,7 @@ namespace {
         exit(EXIT_FAILURE);
     }
 #else
-    void exit_clib_error(char *fmt, ...)
+    void exit_clib_error(const char *fmt, ...)
     {
         va_list vl;
         fputs("error: ", stderr);
@@ -94,7 +95,7 @@ namespace {
     }
 #endif
 
-    void exit_error(char *fmt, ...)
+    void exit_error(const char *fmt, ...)
     {
         va_list vl;
         va_start(vl, fmt);
@@ -209,7 +210,7 @@ namespace {
 
 int main(int argc, char **argv)
 {
-    char *progname = argv[0] ? argv[0] : "whereami";
+    const char *progname = argv[0] ? argv[0] : "whereami";
 
     for (int i = 1; i < argc; ++i) {
         char *arg = argv[i];
