@@ -230,7 +230,7 @@ int main(int argc, char **argv)
     char *end = nullptr;
     uint32_t query_line = strtoul(argv[2], &end, 10);
     if (end && *end != 0)
-        exit_error("expected a line number as the second command-line argument but got: %s",
+        exit_error("expected a line number as the second command-line argument but got: %s\n",
                    argv[2]);
 
 #ifdef WIN32
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
         n_lines++; // extra line at the end, not terminated by a newline
 
     if (n_lines > INT32_MAX)
-        exit_error("file has more lines (%u) than supported (%d)", n_lines, INT32_MAX);
+        exit_error("file has more lines (%u) than supported (%d)\n", n_lines, INT32_MAX);
 
     LineInfo *line_info_array = (LineInfo*) malloc(n_lines * sizeof(LineInfo));
     if (!line_info_array)
