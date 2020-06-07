@@ -301,6 +301,8 @@ int main(int argc, char **argv)
 #endif
     file = NULL;
 
+    // Note: We only consider '\n' characters when counting newlines, so an '\r' without
+    //       a following '\n' is not considered an end-of-line. see :CountingLines
     uint32_t n_lines = 0;
     for (char *ptr = text; *ptr; ++ptr)
         if (*ptr == '\n')
@@ -388,7 +390,10 @@ int main(int argc, char **argv)
                     line_info->outer_index = outer_index;
 
                     // skip to end of line and replace line-terminating characters with NUL (if any)
-                    while (*ptr && *ptr != '\n' && *ptr != '\r')
+                    // Note: A single '\r' without a following '\n' is not treated as an end-of-line.
+                    //       (This is consistent with us not counting '\r' characters when determining n_lines.)
+                    //       see :CountingLines
+                    while (*ptr && *ptr != '\n' && (*ptr != '\r' || ptr[1] != '\n'))
                         ptr++;
                     if (*ptr == '\r')
                         *ptr++ = 0;
