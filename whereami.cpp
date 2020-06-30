@@ -372,6 +372,37 @@ int main(int argc, char **argv)
 
                     assert(outer_index < 0 || prev_indentation >= line_info_array[outer_index].indentation);
 
+                    // check whether the line is of the form "identifier:" (with optional whitespace)
+                    // if so, we do not turn it into a context line
+                    // Note: This is to avoid using goto labels or "public:", "private:", etc. as context lines.
+                    {
+                        bool only_one_identifier = true;
+                        bool seen_space = false;
+                        bool seen_colon = false;
+                        char *lookahead = ptr;
+                        while (*lookahead && *lookahead != '\n' && (*lookahead != '\r' || lookahead[1] != '\n')) {
+                            char ch = *lookahead;
+                            if (seen_space || seen_colon) {
+                                if ((!seen_colon || ch != ':') && !isspace(ch)) {
+                                    only_one_identifier = false;
+                                    break;
+                                }
+                            }
+                            if (ch == ':')
+                                seen_colon = true;
+                            else if (isspace(ch))
+                                seen_space = true;
+                            else if (!isalnum(ch) && ch != '_') {
+                                only_one_identifier = false;
+                                break;
+                            }
+                            lookahead++;
+                        }
+
+                        if (seen_colon && only_one_identifier)
+                            may_become_context = false;
+                    }
+
                     if (may_become_context) {
                         if (column < prev_indentation) {
                             while (outer_index >= 0 && column <= line_info_array[outer_index].indentation) {
