@@ -304,10 +304,17 @@ int main(int argc, char **argv)
     // Note: We only consider '\n' characters when counting newlines, so an '\r' without
     //       a following '\n' is not considered an end-of-line. see :CountingLines
     uint32_t n_lines = 0;
-    for (char *ptr = text; *ptr; ++ptr)
-        if (*ptr == '\n')
-            n_lines++;
-    if (text[file_size - 1] != '\n')
+    bool file_contains_a_nul_byte;
+    {
+        char *ptr;
+        for (ptr = text; *ptr; ++ptr)
+            if (*ptr == '\n')
+                n_lines++;
+        file_contains_a_nul_byte = (ptr < text + n_bytes_read);
+    }
+    // fprintf(stderr, "file_size = %" PRIu64 ", n_bytes_read = %u, n_lines = %u, file_contains_a_nul_byte = %u\n", file_size, n_bytes_read, n_lines, file_contains_a_nul_byte); // XXX DEBUG
+    // Note: If the file contains a NUL byte, parsing will not reach the end of the file.
+    if (!file_contains_a_nul_byte && file_size && text[file_size - 1] != '\n')
         n_lines++; // extra line at the end, not terminated by a newline
 
     if (n_lines > INT32_MAX)
