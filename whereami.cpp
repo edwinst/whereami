@@ -472,26 +472,35 @@ int main(int argc, char **argv)
             printf("%5u: %5u<- %2u: ", 1 + index, 1 + line_info->outer_index, line_info->indentation);
 
         uint32_t n_contexts = 0;
-        for (LineInfo *outer = line_info; outer->outer_index >= 0; outer = line_info_array + outer->outer_index)
-            n_contexts++;
-
-        Context *context_array = (Context *)malloc(n_contexts * sizeof(Context));
-        if (!context_array)
-            exit_error("Out-of-memory allocating context array.\n");
-
-        Context *context_ptr = context_array + n_contexts;
-        for (LineInfo *outer = line_info; outer->outer_index >= 0; ) {
-            outer = line_info_array + outer->outer_index;
-            uint32_t indent = outer->indentation;
-            while (outer > line_info_array && line_is_boring(outer, text)) {
-                outer--;
-                while (outer > line_info_array && outer->indentation > indent)
-                    outer--;
+        Context *context_array = nullptr;
+        // First pass: count contexts
+        // Second pass: allocate and fill in contexts
+        for (uint32_t i_pass = 0; i_pass < 2; ++i_pass) {
+            if (i_pass == 1) {
+                context_array = (Context *)malloc(n_contexts * sizeof(Context));
+                if (!context_array)
+                    exit_error("Out-of-memory allocating context array.\n");
             }
-            assert(context_ptr > context_array);
-            context_ptr--;
-            context_ptr->index = (uint32_t)(outer - line_info_array);
-            context_ptr->text = text + outer->start_offset;
+
+            Context *context_ptr = context_array + n_contexts;
+            for (LineInfo *outer = line_info; outer->outer_index >= 0; ) {
+                outer = line_info_array + outer->outer_index;
+                uint32_t indent = outer->indentation;
+                while (outer > line_info_array && line_is_boring(outer, text)) {
+                    outer--;
+                    while (outer > line_info_array && outer->indentation > indent)
+                        outer--;
+                }
+                if (i_pass == 0) {
+                    n_contexts++;
+                }
+                else {
+                    assert(context_ptr > context_array);
+                    context_ptr--;
+                    context_ptr->index = (uint32_t)(outer - line_info_array);
+                    context_ptr->text = text + outer->start_offset;
+                }
+            }
         }
         assert(context_ptr >= context_array);
         uint32_t start_i = (uint32_t)(context_ptr - context_array);
