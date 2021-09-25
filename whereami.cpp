@@ -206,6 +206,43 @@ namespace {
     }
 }
 
+// parser state // XXX @Cleanup Maybe put this into a struct and pass that to parser functions
+
+static uint32_t n_lines; //< number of lines in the input file
+static uint32_t line; //< current line number, starting at 1
+static uint32_t column; //< current column (up to the first non-whitespace character), starting at 0
+static uint32_t tabsize; //< number of characters per TAB
+static int32_t outer_index; //< index (line number - 1) of the surrounding context for the current line
+static LineInfo *line_info_array; //< array with one LineInfo struct for each line
+static LineInfo *line_info; //< points to the entry for the current line in line_info_array
+// INVARIANT: line_info_array[outer_index].indentation shall always be initialized if outer_index >= 0.
+static uint32_t prev_indentation;
+static bool may_become_context;
+static int32_t prev_valid_index; //< index (line number - 1) of the latest line we could potentially use as a context line
+
+static void process_indentation_of_current_line(bool may_close_context)
+{
+    if (may_close_context && (column < prev_indentation)) {
+        while (outer_index >= 0 && column <= line_info_array[outer_index].indentation) {
+            assert(outer_index < (int32_t)n_lines);
+            assert(prev_indentation >= line_info_array[outer_index].indentation);
+            assert(line_info_array[outer_index].outer_index < outer_index);
+            outer_index = line_info_array[outer_index].outer_index;
+            prev_indentation = (outer_index >= 0) ? line_info_array[outer_index].indentation : 0;
+            prev_valid_index = (line - 1);
+        }
+    }
+    else if (may_become_context && (line > 1 && column > prev_indentation)) {
+        assert(line >= 2);
+        outer_index = prev_valid_index;
+    }
+    line_info->outer_index = outer_index;
+    if (may_become_context || may_close_context) {
+        prev_indentation = column;
+        prev_valid_index = (line - 1);
+    }
+}
+
 #define USAGE  "Usage: %s <SOURCEFILENAME> <LINE>\n\nLINE...line number for which to print whereami information, 0 means print all"
 
 int main(int argc, char **argv)
@@ -303,7 +340,7 @@ int main(int argc, char **argv)
 
     // Note: We only consider '\n' characters when counting newlines, so an '\r' without
     //       a following '\n' is not considered an end-of-line. see :CountingLines
-    uint32_t n_lines = 0;
+    n_lines = 0;
     bool file_contains_a_nul_byte;
     {
         char *ptr;
@@ -330,27 +367,27 @@ int main(int argc, char **argv)
     if (n_lines > INT32_MAX)
         exit_error("file has more lines (%u) than supported (%d)\n", n_lines, INT32_MAX);
 
-    LineInfo *line_info_array = (LineInfo*) malloc(n_lines * sizeof(LineInfo));
+    line_info_array = (LineInfo*) malloc(n_lines * sizeof(LineInfo));
     if (!line_info_array)
         exit_error("Out-of-memory allocating line info buffer.\n");
 
     {
         char *ptr = text;
-        uint32_t line = 1;
-        uint32_t column = 0;
-        uint32_t tabsize = 8;
-        int32_t outer_index = -1;
-        LineInfo *line_info = line_info_array;
-        // INVARIANT: line_info_array[outer_index].indentation shall always be initialized if outer_index >= 0.
-        uint32_t prev_indentation = 0;
-        bool may_become_context = true;
-        int32_t prev_valid_index = -1;
+        line = 1;
+        column = 0;
+        tabsize = 8;
+        outer_index = -1;
+        line_info = line_info_array;
+        prev_indentation = 0;
+        may_become_context = true;
+        prev_valid_index = -1;
         while (*ptr) {
             assert(ptr <= text + file_size);
             char ch = *ptr++;
             switch (ch) {
                 case '\n':
                     // whitespace-only line
+whitespace_only_line:
                     line++;
                     assert(line_info < line_info_array + n_lines);
                     line_info->indentation = prev_indentation;
@@ -372,10 +409,60 @@ int main(int argc, char **argv)
                     // replace by NUL, otherwise ignore
                     ptr[-1] = 0;
                     break;
+                case '/':
+                    if (ptr[0] == '*') {
+                        // A C comment starts here. If it ends on the same line, we just
+                        // skip it and consider the rest of the line normally.
+                        // If it continues over a line break, skip the comment and the
+                        // rest of the line after the closing '*/'.
+                        ptr++;
+                        line_info->indentation = column;
+                        bool comment_contains_newline = false;
+                        while (*ptr && (ptr[0] != '*' || ptr[1] != '/')) {
+                            // XXX @Clarify Do we want to increase `column` in this loop?
+                            if (ptr[0] == '\n') {
+                                may_become_context = false;
+                                process_indentation_of_current_line(!comment_contains_newline /* may_close_context */);
+                                line_info->start_offset = (uint32_t)(ptr - text);
+                                line_info->indentation = column;
+                                line++;
+                                line_info++;
+                                ptr[0] = 0; // replace '\n' with line-terminating NUL
+                                comment_contains_newline = true;
+                            }
+                            else if (ptr[0] == '\r') {
+                                ptr[0] = 0; // replace '\r' with line-terminating NUL
+                            }
+                            ptr++;
+                        }
+                        if (ptr[0] == '*') {
+                            // We found the terminating '*/'.
+                            ptr += 2;
+                            if (comment_contains_newline) {
+                                line_info->start_offset = (uint32_t)(ptr - text);
+                                line_info->indentation = prev_indentation;
+                                goto skip_rest_of_line;
+                            }
+                            // skip whitespace without increasing column
+                            while (*ptr == ' ' || *ptr == '\t' || *ptr == '\r') {
+                                if (*ptr == '\r')
+                                    *ptr = 0;
+                                ptr++;
+                            }
+                            if (*ptr == '\n') {
+                                ptr++;
+                                goto whitespace_only_line;
+                            }
+                        }
+                        if (ptr[0] == 0)
+                            break; // terminate loop
+                    }
+                    goto first_nonwhitespace_character;
                 case '#':
                     may_become_context = false;
                     // FALLTHROUGH
                 default:
+first_nonwhitespace_character:
                     if (ch < 0x20) {
                         fprintf(stderr, "%s:%u: warning: unexpected non-printable character 0x%02x encountered\n",
                                 filename, line, (uint8_t)ch);
@@ -389,10 +476,19 @@ int main(int argc, char **argv)
 
                     assert(outer_index < 0 || prev_indentation >= line_info_array[outer_index].indentation);
 
+                    // XXX @Incomplete It would be good to report closing '}' braces still within the context that they close.
+
+                    // If the line is only a C++ comment, do not consider it as a context line.
+                    // Note: C++ comments after non-comment text will be dropped by the context printing code.
+                    if (ch == '/' && ptr[0] == '/')
+                        may_become_context = false;
+
+                    // XXX @Incomplete handle C comments starting in the middle of the line
+
                     // check whether the line is of the form "identifier:" (with optional whitespace)
                     // if so, we do not turn it into a context line
                     // Note: This is to avoid using goto labels or "public:", "private:", etc. as context lines.
-                    {
+                    if (may_become_context) {
                         bool only_one_identifier = true;
                         bool seen_space = false;
                         bool seen_colon = false;
@@ -420,22 +516,25 @@ int main(int argc, char **argv)
                             may_become_context = false;
                     }
 
-                    if (may_become_context) {
-                        if (column < prev_indentation) {
-                            while (outer_index >= 0 && column <= line_info_array[outer_index].indentation) {
-                                assert(outer_index < (int32_t)n_lines);
-                                assert(prev_indentation >= line_info_array[outer_index].indentation);
-                                assert(line_info_array[outer_index].outer_index < outer_index);
-                                outer_index = line_info_array[outer_index].outer_index;
-                                prev_indentation = (outer_index >= 0) ? line_info_array[outer_index].indentation : 0;
-                            }
-                        }
-                        else if (line > 1 && column > prev_indentation) {
-                            assert(line >= 2);
-                            outer_index = prev_valid_index;
-                        }
+                    // Don't consider 'case' labels as context lines.
+                    // XXX @Clarify Case labels could make useful context lines but
+                    //     if we consider them, we should consider goto labels, too,
+                    //     for consistency. The problem is that goto labels are often
+                    //     not meaningfully indented. Should we add some heuristics to
+                    //     recognize goto labels that are at the same indentation level
+                    //     on which we expect to see 'case' labels?
+                    //     Another problem is that 'case's are often at the same level
+                    //     as the surrounding 'switch' but we would really like to
+                    //     have the switch as an outer context for the 'case's.
+                    //     It seems we want some smart heuristics for goto/case labels.
+                    //     For the time being, just ignore them.
+                    // Note: 'default:' is handled by the goto label check above.
+                    if (may_become_context && memcmp(ptr - 1, "case", 4) == 0 && isspace(ptr[3])) {
+                        may_become_context = false;
                     }
-                    line_info->outer_index = outer_index;
+
+skip_rest_of_line:
+                    process_indentation_of_current_line(may_become_context /* may_close_context */);
 
                     // skip to end of line and replace line-terminating characters with NUL (if any)
                     // Note: A single '\r' without a following '\n' is not treated as an end-of-line.
@@ -450,10 +549,6 @@ int main(int argc, char **argv)
 
                     assert(ptr <= text + file_size);
 
-                    if (may_become_context) {
-                        prev_indentation = column;
-                        prev_valid_index = (line - 1);
-                    }
                     line++;
                     line_info++;
                     may_become_context = true;
@@ -483,6 +578,7 @@ int main(int argc, char **argv)
 
         uint32_t n_contexts = 0;
         Context *context_array = nullptr;
+        Context *context_ptr = nullptr;
         // First pass: count contexts
         // Second pass: allocate and fill in contexts
         for (uint32_t i_pass = 0; i_pass < 2; ++i_pass) {
@@ -492,7 +588,7 @@ int main(int argc, char **argv)
                     exit_error("Out-of-memory allocating context array.\n");
             }
 
-            Context *context_ptr = context_array + n_contexts;
+            context_ptr = context_array + n_contexts;
             for (LineInfo *outer = line_info; outer->outer_index >= 0; ) {
                 outer = line_info_array + outer->outer_index;
                 uint32_t indent = outer->indentation;
