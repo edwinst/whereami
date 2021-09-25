@@ -268,7 +268,7 @@ int main(int argc, char **argv)
         exit_error("File size %" PRIu64 " > %u bytes is not supported.\n",
                    file_size, UINT32_MAX);
 
-    char *text = (char *)malloc(file_size + 1);
+    char *text = (char *)malloc(file_size + 2); // +1 for possible extra newline, +1 for terminating NUL
     if (!text)
         exit_error("Out-of-memory allocating buffer for file text (file_size = %" PRIu64 ")\n", file_size);
 
@@ -312,10 +312,20 @@ int main(int argc, char **argv)
                 n_lines++;
         file_contains_a_nul_byte = (ptr < text + n_bytes_read);
     }
-    // fprintf(stderr, "file_size = %" PRIu64 ", n_bytes_read = %u, n_lines = %u, file_contains_a_nul_byte = %u\n", file_size, n_bytes_read, n_lines, file_contains_a_nul_byte); // XXX DEBUG
+
+    // XXX DEBUG
+    if (0) {
+        fprintf(stderr, "file_size = %" PRIu64 ", n_bytes_read = %u, n_lines = %u, file_contains_a_nul_byte = %u, last byte of file: 0x%02x\n",
+                file_size, n_bytes_read, n_lines, file_contains_a_nul_byte, file_size ? text[file_size - 1] : 0);
+    }
+
     // Note: If the file contains a NUL byte, parsing will not reach the end of the file.
-    if (!file_contains_a_nul_byte && file_size && text[file_size - 1] != '\n')
+    if (!file_contains_a_nul_byte && file_size && text[file_size - 1] != '\n') {
         n_lines++; // extra line at the end, not terminated by a newline
+        // add an extra newline so we do not have to treat this special case below
+        text[n_bytes_read] = '\n';
+        text[n_bytes_read + 1] = 0;
+    }
 
     if (n_lines > INT32_MAX)
         exit_error("file has more lines (%u) than supported (%d)\n", n_lines, INT32_MAX);
