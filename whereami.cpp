@@ -419,7 +419,10 @@ whitespace_only_line:
                         line_info->indentation = column;
                         bool comment_contains_newline = false;
                         while (*ptr && (ptr[0] != '*' || ptr[1] != '/')) {
-                            // XXX @Clarify Do we want to increase `column` in this loop?
+                            // Note: We do not increase `column` in this loop since in the case
+                            // of the comment ending on this same line, we will want to rember
+                            // the initial indentation of the line up to the comment, which is
+                            // stored in `column`.
                             if (ptr[0] == '\n') {
                                 may_become_context = false;
                                 process_indentation_of_current_line(!comment_contains_newline /* may_close_context */);
