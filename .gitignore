@@ -5,3 +5,11 @@ whereami_debug.exe
 whereami_debug.pdb
 whereami_nowin32.exe
 tags
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+.ninja_deps
+.ninja_log
+build.ninja
+whereami

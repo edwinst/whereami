@@ -474,8 +474,10 @@ first_nonwhitespace_character:
                     // we are at the first non-indentation character of a line
                     assert(line_info < line_info_array + n_lines);
                     line_info->indentation = column;
-                    char *line_text = ptr - 1;
-                    line_info->start_offset = (uint32_t)(line_text - text);
+                    {
+                        char *line_text = ptr - 1;
+                        line_info->start_offset = (uint32_t)(line_text - text);
+                    }
 
                     assert(outer_index < 0 || prev_indentation >= line_info_array[outer_index].indentation);
 
