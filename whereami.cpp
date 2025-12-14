@@ -362,6 +362,7 @@ int main(int argc, char **argv)
         // add an extra newline so we do not have to treat this special case below
         text[n_bytes_read] = '\n';
         text[n_bytes_read + 1] = 0;
+        file_size++; // cannot overflow since we limited to <= UINT32_MAX above and file_size is uint64_t.
     }
 
     if (n_lines > INT32_MAX)
