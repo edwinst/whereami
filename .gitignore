@@ -4,7 +4,6 @@ whereami.obj
 whereami_debug.exe
 whereami_debug.pdb
 whereami_nowin32.exe
-tags
 
 CMakeCache.txt
 CMakeFiles/
